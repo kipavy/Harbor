@@ -53,3 +53,9 @@ test("non-Windows, help and unrelated Tauri commands are unchanged", () => {
     assert.equal(shouldEnableWindowsWhisper("win32", args), false);
   }
 });
+
+test("Windows arm64 builds ship without Whisper", () => {
+  assert.equal(shouldEnableWindowsWhisper("win32", ["build"], "arm64"), false);
+  assert.equal(shouldEnableWindowsWhisper("win32", ["dev"], "arm64"), false);
+  assert.equal(shouldEnableWindowsWhisper("win32", ["build"], "x64"), true);
+});

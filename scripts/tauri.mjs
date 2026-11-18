@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const cli = require.resolve("@tauri-apps/cli/tauri.js");
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
-const withWhisper = shouldEnableWindowsWhisper(process.platform, args);
+const withWhisper = shouldEnableWindowsWhisper(process.platform, args, process.arch);
 const command = withWhisper ? "powershell.exe" : process.execPath;
 const fullArgs = withWhisper
   ? [
@@ -41,7 +41,12 @@ function runTauri() {
 
 // All Windows release builds carry the shared, self-contained Moonshine
 // worker. Development runs do not build it or download any language models.
-if (process.platform === "win32" && args[0] === "build") {
+// moonshine-voice publishes no Windows arm64 wheel, so arm64 builds ship without the worker
+// and subtitle sync keeps its Python fallback.
+if (process.platform === "win32" && args[0] === "build" && process.arch === "arm64") {
+  console.warn("Skipping the Moonshine worker: moonshine-voice has no Windows arm64 build.");
+  runTauri();
+} else if (process.platform === "win32" && args[0] === "build") {
   const worker = spawn(
     "powershell.exe",
     [

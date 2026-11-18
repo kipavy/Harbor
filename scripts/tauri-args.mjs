@@ -1,9 +1,12 @@
 // Shared argument policy for the Harbor Tauri launcher.
 // Keep non-Windows and non-desktop commands exactly as the user entered them.
-export function shouldEnableWindowsWhisper(platform, args) {
+// whisper.cpp does not build for Windows arm64 with the toolchain Harbor uses, so arm64 builds
+// ship without the optional asr-whisper feature, like the other Whisper-free builds.
+export function shouldEnableWindowsWhisper(platform, args, arch) {
   const command = args[0];
   return (
     platform === "win32" &&
+    arch !== "arm64" &&
     (command === "dev" || command === "build") &&
     !args.includes("-h") &&
     !args.includes("--help") &&

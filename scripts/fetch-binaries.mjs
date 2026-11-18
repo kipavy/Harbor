@@ -24,6 +24,7 @@
  *   macOS  (both) : github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
  *                   (universal2; needs macOS 12+. For macOS 11 use yt-dlp_macos_legacy.)
  *   windows x86_64: github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+ *   windows aarch64: github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_arm64.exe
  *
  * ffmpeg + ffprobe  (extracted from an archive)
  *   linux  x86_64 : github.com/BtbN/FFmpeg-Builds latest ffmpeg-master-latest-linux64-gpl.tar.xz
@@ -36,6 +37,7 @@
  *                    Silicon it runs under Rosetta.)
  *   windows x86_64: gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
  *                   (alt: github.com/BtbN/FFmpeg-Builds latest win64-gpl zip)
+ *   windows aarch64: github.com/BtbN/FFmpeg-Builds latest ffmpeg-master-latest-winarm64-gpl.zip
  *
  * Extraction tools (documented external dependency):
  *   .tar.xz -> `tar -xJf`  (linux; GNU tar + xz-utils)
@@ -78,6 +80,7 @@ const mb = (p) => (statSync(p).size / 1048576).toFixed(0);
 
 const YTDLP = "https://github.com/yt-dlp/yt-dlp/releases/latest/download";
 const BTBN = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest";
+const BTBN_WINARM64 = `${BTBN}/ffmpeg-master-latest-winarm64-gpl.zip`;
 const EVERMEET_INFO = "https://evermeet.cx/ffmpeg/info";
 const GYAN = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
 const UA =
@@ -106,6 +109,7 @@ const SOURCES = {
     "x86_64-apple-darwin": { kind: "raw", url: `${YTDLP}/yt-dlp_macos` },
     "aarch64-apple-darwin": { kind: "raw", url: `${YTDLP}/yt-dlp_macos` },
     "x86_64-pc-windows-msvc": { kind: "raw", url: `${YTDLP}/yt-dlp.exe` },
+    "aarch64-pc-windows-msvc": { kind: "raw", url: `${YTDLP}/yt-dlp_arm64.exe` },
   },
   ffmpeg: {
     "x86_64-unknown-linux-gnu": {
@@ -121,6 +125,7 @@ const SOURCES = {
     "x86_64-apple-darwin": { kind: "evermeet", infoName: "ffmpeg", member: "ffmpeg" },
     "aarch64-apple-darwin": { kind: "evermeet", infoName: "ffmpeg", member: "ffmpeg" },
     "x86_64-pc-windows-msvc": { kind: "zip", url: GYAN, member: "ffmpeg.exe" },
+    "aarch64-pc-windows-msvc": { kind: "zip", url: BTBN_WINARM64, member: "ffmpeg.exe" },
   },
   ffprobe: {
     "x86_64-unknown-linux-gnu": {
@@ -136,6 +141,7 @@ const SOURCES = {
     "x86_64-apple-darwin": { kind: "evermeet", infoName: "ffprobe", member: "ffprobe" },
     "aarch64-apple-darwin": { kind: "evermeet", infoName: "ffprobe", member: "ffprobe" },
     "x86_64-pc-windows-msvc": { kind: "zip", url: GYAN, member: "ffprobe.exe" },
+    "aarch64-pc-windows-msvc": { kind: "zip", url: BTBN_WINARM64, member: "ffprobe.exe" },
   },
 };
 
@@ -198,16 +204,10 @@ function extractMember(buf, kind, member, dest) {
     if (kind === "tar.xz") {
       execFileSync("tar", ["-xJf", archive, "-C", outDir], { stdio: "inherit" });
     } else if (process.platform === "win32") {
-      execFileSync(
-        "powershell",
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          `Expand-Archive -LiteralPath "${archive}" -DestinationPath "${outDir}" -Force`,
-        ],
-        { stdio: "inherit" },
-      );
+      // Expand-Archive fails on Windows arm64 runners (ZipFile.ExtractToDirectory overload
+      // lookup). The system bsdtar reads zip archives on every Windows 10+ install.
+      const systemTar = join(process.env.SystemRoot ?? "C:/Windows", "System32", "tar.exe");
+      execFileSync(systemTar, ["-xf", archive, "-C", outDir], { stdio: "inherit" });
     } else {
       execFileSync("unzip", ["-oq", archive, "-d", outDir], { stdio: "inherit" });
     }

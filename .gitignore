@@ -40,6 +40,7 @@ pnpm-debug.log*
 /src-tauri/binaries/ffprobe*
 /src-tauri/binaries/mpv-*
 /src-tauri/libmpv/libmpv-2.dll
+/src-tauri/libmpv/arm64/
 /src-tauri/resources/capstan/
 /src-tauri/fonts/*.otf
 /src-tauri/fonts/*.ttf

@@ -11,8 +11,15 @@ fn main() {
 
     if target_os == "windows" {
         let libmpv = manifest.join("libmpv");
-        let import_lib = libmpv.join("mpv.lib");
         let runtime_dll = libmpv.join("libmpv-2.dll");
+        // The checked-in mpv.lib is an x64 import library. ARM64 links against the one
+        // `pnpm run setup:libmpv` stages next to its own libmpv-2.dll.
+        let link_dir = if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") {
+            libmpv.join("arm64")
+        } else {
+            libmpv.clone()
+        };
+        let import_lib = link_dir.join("mpv.lib");
         // Track these unconditionally. `rerun-if-changed` used to be emitted only
         // when `mpv.lib` already existed, so a build script run with libmpv
         // missing was cached forever: restoring the files afterwards did not
@@ -22,7 +29,7 @@ fn main() {
         println!("cargo:rerun-if-changed={}", import_lib.display());
         println!("cargo:rerun-if-changed={}", runtime_dll.display());
         if import_lib.exists() {
-            println!("cargo:rustc-link-search=native={}", libmpv.display());
+            println!("cargo:rustc-link-search=native={}", link_dir.display());
         }
         if std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default() == "msvc" {
             // Only the app binary gets tauri_build's Common-Controls v6 manifest, so a
@@ -36,8 +43,8 @@ fn main() {
         }
         if !import_lib.exists() {
             println!(
-                "cargo:warning=mpv.lib is missing from {}. It is checked in; restore it from git (Harbor cannot link on Windows without it).",
-                libmpv.display()
+                "cargo:warning=mpv.lib is missing from {}. x64 checks it in, so restore it from git; ARM64 stages it with `pnpm run setup:libmpv` (Harbor cannot link on Windows without it).",
+                link_dir.display()
             );
         } else if !runtime_dll.exists() {
             println!(

@@ -34,6 +34,9 @@ jobs:
         platform:
           - name: Windows
             runner: windows-latest
+          - name: Windows ARM64
+            runner: windows-11-arm
+            java: "21"
           - name: macOS
             runner: macos-15
             target: aarch64-apple-darwin
@@ -107,7 +110,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # Temurin 17 has no Windows arm64 build, and Capstan accepts any JDK from 17 up.
+          java-version: ${{ matrix.platform.java || '17' }}
 
       - name: Set up Pokémon engine SDK
         uses: actions/setup-dotnet@v4
